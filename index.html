@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Advanced Image to PDF Converter</title>
+  <!-- Font Awesome for Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <!-- Cropper.js CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f9;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+    }
+
+    h1 {
+      color: #333;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .container {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      width: 90%;
+      max-width: 800px;
+    }
+
+    .upload-section {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .upload-label {
+      display: inline-block;
+      padding: 10px 20px;
+      background-color: #007bff;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .upload-label:hover {
+      background-color: #0056b3;
+    }
+
+    #imageInput {
+      display: none;
+    }
+
+    .preview-section {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .preview-item {
+      position: relative;
+      width: 100px;
+      height: 100px;
+      border: 2px dashed #ccc;
+      border-radius: 5px;
+      overflow: hidden;
+    }
+
+    .preview-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .preview-item .remove-btn,
+    .preview-item .crop-btn {
+      position: absolute;
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .preview-item .remove-btn {
+      top: 5px;
+      right: 5px;
+    }
+
+    .preview-item .crop-btn {
+      bottom: 5px;
+      right: 5px;
+    }
+
+    .crop-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    .crop-modal-content {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+      width: 90%;
+      max-width: 500px;
+    }
+
+    .crop-modal-content img {
+      max-width: 100%;
+      max-height: 80vh;
+    }
+
+    .crop-modal-buttons {
+      margin-top: 10px;
+    }
+
+    .crop-modal-buttons button {
+      padding: 10px 20px;
+      margin: 5px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .crop-modal-buttons button.confirm {
+      background: #007bff;
+      color: white;
+    }
+
+    .crop-modal-buttons button.cancel {
+      background: #ccc;
+      color: black;
+    }
+
+    #convertBtn {
+      padding: 10px 20px;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      width: 100%;
+      max-width: 200px;
+      margin: 0 auto;
+      display: block;
+    }
+
+    #convertBtn:hover {
+      background-color: #218838;
+    }
+
+    /* Media Queries for Mobile */
+    @media (max-width: 600px) {
+      h1 {
+        font-size: 24px;
+      }
+
+      .preview-item {
+        width: 80px;
+        height: 80px;
+      }
+
+      .preview-item .remove-btn,
+      .preview-item .crop-btn {
+        width: 20px;
+        height: 20px;
+        font-size: 12px;
+      }
+
+      .crop-modal-content {
+        padding: 10px;
+      }
+
+      .crop-modal-buttons button {
+        padding: 8px 16px;
+        font-size: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>Advanced Image to PDF Converter</h1>
+  <div class="container">
+    <!-- Upload Section -->
+    <div class="upload-section">
+      <label for="imageInput" class="upload-label">
+        <i class="fas fa-upload"></i> Upload Images
+      </label>
+      <input type="file" id="imageInput" accept="image/*" multiple>
+    </div>
+
+    <!-- Image Preview Section -->
+    <div class="preview-section" id="previewSection"></div>
+
+    <!-- Crop Modal -->
+    <div class="crop-modal" id="cropModal">
+      <div class="crop-modal-content">
+        <img id="cropImage" src="" alt="Crop Image">
+        <div class="crop-modal-buttons">
+          <button class="confirm" onclick="confirmCrop()">Confirm</button>
+          <button class="cancel" onclick="closeCropModal()">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Convert Button -->
+    <button id="convertBtn">Convert to PDF</button>
+  </div>
+
+  <!-- Cropper.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
+  <!-- jsPDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script>
+    const { jsPDF } = window.jspdf;
+    let cropper;
+    let currentImageIndex;
+
+    // Image Preview and Upload
+    const imageInput = document.getElementById('imageInput');
+    const previewSection = document.getElementById('previewSection');
+    const cropModal = document.getElementById('cropModal');
+    const cropImage = document.getElementById('cropImage');
+
+    imageInput.addEventListener('change', function (event) {
+      const files = event.target.files;
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          const img = document.createElement('img');
+          img.src = e.target.result;
+
+          const previewItem = document.createElement('div');
+          previewItem.className = 'preview-item';
+
+          const removeBtn = document.createElement('button');
+          removeBtn.className = 'remove-btn';
+          removeBtn.innerHTML = '<i class="fas fa-times"></i>';
+          removeBtn.onclick = function () {
+            previewSection.removeChild(previewItem);
+          };
+
+          const cropBtn = document.createElement('button');
+          cropBtn.className = 'crop-btn';
+          cropBtn.innerHTML = '<i class="fas fa-crop"></i>';
+          cropBtn.onclick = function () {
+            openCropModal(img.src, Array.from(previewSection.children).indexOf(previewItem));
+          };
+
+          previewItem.appendChild(img);
+          previewItem.appendChild(removeBtn);
+          previewItem.appendChild(cropBtn);
+          previewSection.appendChild(previewItem);
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    // Open Crop Modal
+    function openCropModal(imageSrc, index) {
+      currentImageIndex = index;
+      cropImage.src = imageSrc;
+      cropModal.style.display = 'flex';
+      cropper = new Cropper(cropImage, {
+        aspectRatio: NaN, // Free crop
+        viewMode: 1,
+      });
+    }
+
+    // Close Crop Modal
+    function closeCropModal() {
+      cropModal.style.display = 'none';
+      if (cropper) {
+        cropper.destroy();
+      }
+    }
+
+    // Confirm Crop
+    function confirmCrop() {
+      const canvas = cropper.getCroppedCanvas();
+      const croppedImage = canvas.toDataURL('image/jpeg');
+
+      const previewItems = previewSection.children;
+      const previewItem = previewItems[currentImageIndex];
+      const img = previewItem.querySelector('img');
+      img.src = croppedImage;
+
+      closeCropModal();
+    }
+
+    // Convert to PDF
+    document.getElementById('convertBtn').addEventListener('click', function () {
+      const previewItems = previewSection.children;
+      if (previewItems.length === 0) {
+        alert('Please upload at least one image.');
+        return;
+      }
+
+      const doc = new jsPDF();
+      Array.from(previewItems).forEach((item, index) => {
+        const img = item.querySelector('img');
+        const imgWidth = img.naturalWidth;
+        const imgHeight = img.naturalHeight;
+        const pdfWidth = doc.internal.pageSize.getWidth();
+        const pdfHeight = (imgHeight * pdfWidth) / imgWidth;
+
+        if (index > 0) {
+          doc.addPage();
+        }
+
+        doc.addImage(img.src, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+      });
+
+      doc.save('converted.pdf');
+    });
+  </script>
+</body>
+</html>
